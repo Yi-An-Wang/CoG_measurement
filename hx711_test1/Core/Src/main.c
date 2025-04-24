@@ -50,6 +50,9 @@
 /* USER CODE BEGIN PV */
 
 int32_t weight_raw;
+int count_num = 0;
+int64_t weight_sum = 0;
+int32_t average_weight = 0;
 
 /* USER CODE END PV */
 
@@ -145,6 +148,16 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 	weight_raw = HX711_Read();
+	if (count_num < 50){
+		weight_sum = weight_sum + weight_raw;
+		count_num++;
+	}
+	else{
+
+		average_weight = weight_sum / count_num;
+		count_num = 0;
+		weight_sum = 0;
+	}
 
 	HAL_Delay(100);
   }
