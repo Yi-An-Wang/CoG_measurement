@@ -32,18 +32,23 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define DT_Pin1 	GPIO_PIN_0
-#define DT_Pin2 	GPIO_PIN_2
+#define DT_Pin1 	GPIO_PIN_10
+#define DT_Pin2 	GPIO_PIN_8
 #define DT_Pin3 	GPIO_PIN_4
 #define DT_Pin4 	GPIO_PIN_6
 
-#define SDK_Pin1 	GPIO_PIN_1
-#define SDK_Pin2 	GPIO_PIN_3
+#define SDK_Pin1 	GPIO_PIN_11
+#define SDK_Pin2 	GPIO_PIN_9
 #define SDK_Pin3 	GPIO_PIN_5
 #define SDK_Pin4 	GPIO_PIN_7
 
 #define DT_Port 	GPIOA
 #define SDK_Port	GPIOA
+
+#define ADXL345_ADDR       (0x53 << 1)  // 注意：I2C位址左移1位（因為HAL使用8位元格式）
+#define ADXL345_DEVID_REG  0x00
+#define ADXL345_POWER_CTL  0x2D
+#define ADXL345_DATAX0     0x32
 
 /* USER CODE END PD */
 
@@ -55,6 +60,8 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim1;
+
 /* USER CODE BEGIN PV */
 
 int32_t load_num1, load_num2, load_num3, load_num4;
@@ -62,8 +69,9 @@ int64_t load_sum1, load_sum2, load_sum3, load_sum4;
 int32_t avg_load1, avg_load2, avg_load3, avg_load4;
 
 int c_in_count = 0;
+int down = 0;
 
-int32_t gx_num, gy_num, gz_num;
+int16_t gx_num, gy_num, gz_num;
 
 /* USER CODE END PV */
 
@@ -71,6 +79,7 @@ int32_t gx_num, gy_num, gz_num;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -89,8 +98,10 @@ int32_t HX711_Read(GPIO_TypeDef* HX711_DT_GPIO_Port, uint16_t HX711_DT_Pin, GPIO
     int32_t count = 0;
     uint8_t i;
 
+    down = 0;
     // waiting for DOUT down, data readable
     while(HAL_GPIO_ReadPin(HX711_DT_GPIO_Port, HX711_DT_Pin));
+    down = 1;
 
     for (i = 0; i < 24; i++)
     {
@@ -114,6 +125,28 @@ int32_t HX711_Read(GPIO_TypeDef* HX711_DT_GPIO_Port, uint16_t HX711_DT_Pin, GPIO
     // 轉成補數
     count ^= 0x800000;
     return count;
+}
+
+void ADXL345_Init(I2C_HandleTypeDef *hi2c) {
+    uint8_t data;
+
+    // 確認 device ID 是否正確（應為 0xE5）
+    HAL_I2C_Mem_Read(hi2c, ADXL345_ADDR, ADXL345_DEVID_REG, I2C_MEMADD_SIZE_8BIT, &data, 1, HAL_MAX_DELAY);
+    if (data != 0xE5) {
+        // 錯誤處理
+    }
+
+    // 開啟測量模式（將 POWER_CTL 的 bit3 設為 1）
+    data = 0x08;
+    HAL_I2C_Mem_Write(hi2c, ADXL345_ADDR, ADXL345_POWER_CTL, I2C_MEMADD_SIZE_8BIT, &data, 1, HAL_MAX_DELAY);
+}
+
+void ADXL345_ReadXYZ(I2C_HandleTypeDef *hi2c, int16_t *x, int16_t *y, int16_t *z) {
+    uint8_t buffer[6];
+    HAL_I2C_Mem_Read(hi2c, ADXL345_ADDR, ADXL345_DATAX0, I2C_MEMADD_SIZE_8BIT, buffer, 6, HAL_MAX_DELAY);
+    *x = (int16_t)(buffer[1] << 8 | buffer[0]);
+    *y = (int16_t)(buffer[3] << 8 | buffer[2]);
+    *z = (int16_t)(buffer[5] << 8 | buffer[4]);
 }
 
 /* USER CODE END 0 */
@@ -148,6 +181,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
   int count_num = 0;
@@ -155,6 +189,8 @@ int main(void)
   load_sum2 = 0;
   load_sum3 = 0;
   load_sum4 = 0;
+
+  ADXL345_Init(&hi2c1);
 
   /* USER CODE END 2 */
 
@@ -191,6 +227,8 @@ int main(void)
 		load_sum3 = 0;
 		load_sum4 = 0;
 	}
+
+	ADXL345_ReadXYZ(&hi2c1, &gx_num, &gy_num, &gz_num);
 
 	HAL_Delay(100);
   }
@@ -273,6 +311,52 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 15;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 65535;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -285,20 +369,21 @@ static void MX_GPIO_Init(void)
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_7, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|GPIO_PIN_7|GPIO_PIN_9|GPIO_PIN_11, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PA0 PA2 PA4 PA6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_2|GPIO_PIN_4|GPIO_PIN_6;
+  /*Configure GPIO pins : PA4 PA6 PA8 PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_6|GPIO_PIN_8|GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA1 PA3 PA5 PA7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_7;
+  /*Configure GPIO pins : PA5 PA7 PA9 PA11 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_7|GPIO_PIN_9|GPIO_PIN_11;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
