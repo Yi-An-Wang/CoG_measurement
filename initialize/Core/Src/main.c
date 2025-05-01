@@ -62,16 +62,34 @@ I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim1;
 
+UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PV */
 
+// ----------------- hx711 begin ---------------------------
 int32_t load_num1, load_num2, load_num3, load_num4;
 int64_t load_sum1, load_sum2, load_sum3, load_sum4;
 int32_t avg_load1, avg_load2, avg_load3, avg_load4;
 
+// parameters for calibration
+int32_t tare1 = 8858327, tare2 = 8854343, tare3 = 8783827, tare4 = 8231851;
+float weight_c = 5 * 1000000; //in micrograme
+int32_t weight_load1=332172, weight_load2=177465, weight_load3=266040, weight_load4=810000;
+float force1, force2, force3, force4;
+
+// defined parameters for testing and debug
 int c_in_count = 0;
 int down = 0;
+// ------------------ hx711 end ----------------------------
 
+// ------------------ ADXL345 begin ------------------------
 int16_t gx_num, gy_num, gz_num;
+float ax, ay, az;
+// ------------------ ADXL345 end --------------------------
+
+// ------------------ send to serial -----------------------
+char msg[64];
+// ------------------ send to serial end -------------------
 
 /* USER CODE END PV */
 
@@ -80,6 +98,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -182,6 +201,7 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_TIM1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   int count_num = 0;
@@ -208,7 +228,17 @@ int main(void)
 	load_num3 = HX711_Read(DT_Port, DT_Pin3, SDK_Port, SDK_Pin3);
 	load_num4 = HX711_Read(DT_Port, DT_Pin4, SDK_Port, SDK_Pin4);
 
-	if (count_num < 50){
+	weight_load1 = load_num1 - tare1;
+	weight_load2 = load_num2 - tare2;
+	weight_load3 = load_num3 - tare3;
+	weight_load4 = load_num4 = tare4;
+
+	force1 = (load_num1 - tare1) * (weight_load1/(weight_c/4)) * 0.001;
+	force2 = (load_num2 - tare2) * (weight_load2/(weight_c/4)) * 0.001;
+	force3 = (load_num3 - tare3) * (weight_load3/(weight_c/4)) * 0.001;
+	force4 = (load_num4 - tare4) * (weight_load4/(weight_c/4)) * 0.001;
+
+	if (count_num < 500){
 		load_sum1 = load_sum1 + load_num1;
 		load_sum2 = load_sum2 + load_num2;
 		load_sum3 = load_sum3 + load_num3;
@@ -229,8 +259,14 @@ int main(void)
 	}
 
 	ADXL345_ReadXYZ(&hi2c1, &gx_num, &gy_num, &gz_num);
+	ax = gx_num / 256.0;
+	ay = gy_num / 256.0;
+	az = gy_num / 256.0;
 
-	HAL_Delay(100);
+	int len = sprintf(msg, "%.6f,%.6f,%.6f,%.6f,&.6f,%.6f,%.6f\r\n", force1, force2, force3, force4, ax, ay, az);
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, len, 1);
+
+	HAL_Delay(50);
   }
   /* USER CODE END 3 */
 }
@@ -353,6 +389,39 @@ static void MX_TIM1_Init(void)
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_RTS_CTS;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 
