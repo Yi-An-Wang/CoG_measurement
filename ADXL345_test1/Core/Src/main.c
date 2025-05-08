@@ -145,7 +145,6 @@ int main(void)
 	gy = ay / 256.0;
 	gz = az / 256.0;
 	int len = sprintf(msg, "Hello: %d,%d,%d\r\n", ax, ay, az);
-//	HAL_UART_Transmit(&huart2, (uint8_t*)msg, len, HAL_MAX_DELAY);
 	HAL_UART_Transmit(&huart2, (uint8_t*)msg, len, HAL_MAX_DELAY);
 	HAL_Delay(500);  // 0.5秒更新一次
   }
