@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <math.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -51,7 +52,10 @@ int16_t ax, ay, az;
 float alpha = 0.9;
 float est_ax = 0, est_ay = 0, est_az = 1000;
 
-char msg[64];
+char msg[96];
+
+float raw_pitch, raw_roll;
+float pitch, roll;
 
 /* USER CODE END PV */
 
@@ -119,7 +123,14 @@ int main(void)
 	est_ay = alpha * est_ay + (1-alpha) * ay;
 	est_az = alpha * est_az + (1-alpha) * az;
 
-	int len = sprintf(msg, "%d,%d,%d,%.6f,%.6f,%.6f\r\n", ax, ay, az, est_ax, est_ay, est_az);
+	raw_pitch = atan2(-ax, sqrt(ay*ay + az*az));
+	raw_roll = atan2(ay, az);
+
+	pitch = atan2(-est_ax, sqrt(est_ay*est_ay + est_az*est_az));
+	roll = atan2(est_ay, est_az);
+
+	int len = sprintf(msg, "%d,%d,%d,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\r\n", ax, ay, az, est_ax, est_ay, est_az,
+			raw_pitch, raw_roll, pitch, roll);
 	HAL_UART_Transmit(&huart2, (uint8_t*)msg, len, HAL_MAX_DELAY);
 
 	HAL_Delay(100);
