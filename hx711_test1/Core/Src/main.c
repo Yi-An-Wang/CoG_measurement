@@ -53,9 +53,17 @@ UART_HandleTypeDef huart2;
 int32_t weight_raw;
 int count_num = 0;
 int64_t weight_sum = 0;
-int32_t average_weight = 0;
+//int32_t average_weight = 0;
 
-char msg[32];
+int32_t tare = 8399803;
+float know_kg = 2.5;
+float know_hx711 = 939829.25;
+
+int32_t tare_weight_raw = 0;
+float alpha = 0.9;
+float estimated_weight = 0;
+
+char msg[64];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -134,6 +142,8 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
 
+  float coefficient = know_kg / know_hx711;
+
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -152,20 +162,35 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 	weight_raw = HX711_Read();
-	if (count_num < 50){
+//	tare_weight_raw = weight_raw - tare;
+//	if (count_num < 50){
+//		weight_sum = weight_sum + weight_raw;
+//		count_num++;
+//	}
+//	else{
+//
+//		average_weight = weight_sum / count_num;
+//		count_num = 0;
+//		weight_sum = 0;
+//		int len = sprintf(msg, "value: %d\r\n", average_weight);
+//		HAL_UART_Transmit(&huart2, (uint8_t*)msg, len, HAL_MAX_DELAY);
+//	}
+	if (count_num < 500) {
 		weight_sum = weight_sum + weight_raw;
 		count_num++;
 	}
-	else{
-
-		average_weight = weight_sum / count_num;
-		count_num = 0;
-		weight_sum = 0;
-		int len = sprintf(msg, "value: %d\r\n", average_weight);
+	else if (count_num == 50) {
+		tare = weight_sum / count_num;
+		count_num++;
+	}
+	else {
+		float new_weight = (weight_raw - tare) * coefficient;
+		estimated_weight = alpha * estimated_weight + (1-alpha) * new_weight;
+		int len = sprintf(msg, "%.6f,%.6f\r\n", estimated_weight, new_weight);
 		HAL_UART_Transmit(&huart2, (uint8_t*)msg, len, HAL_MAX_DELAY);
 	}
 
-	HAL_Delay(10);
+	HAL_Delay(50);
   }
   /* USER CODE END 3 */
 }
