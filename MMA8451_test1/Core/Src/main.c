@@ -52,7 +52,7 @@ int16_t ax, ay, az;
 float alpha = 0.9;
 float est_ax = 0, est_ay = 0, est_az = 1000;
 
-char msg[96];
+char msg[128];
 
 float raw_pitch, raw_roll;
 float pitch, roll;
@@ -133,7 +133,7 @@ int main(void)
 			raw_pitch, raw_roll, pitch, roll);
 	HAL_UART_Transmit(&huart2, (uint8_t*)msg, len, HAL_MAX_DELAY);
 
-	HAL_Delay(100);
+	HAL_Delay(200);
 
   }
   /* USER CODE END 3 */
