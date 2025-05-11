@@ -81,8 +81,10 @@ def read_MMA8451():
     axis_z.legend()
 
     fig2 = plt.figure()
-    axis_pitch = fig2.add_subplot(211)
-    axis_roll = fig2.add_subplot(212)
+    axis_pitch = fig2.add_subplot(221)
+    axis_roll = fig2.add_subplot(222)
+    polar_pitch = fig2.add_subplot(223, polar=True)
+    polar_roll = fig2.add_subplot(224, polar=True)
     axis_pitch.grid(True)
     axis_roll.grid(True)
     line_raw_pitch, = axis_pitch.plot(t_data, raw_pitch_data, label="raw_pitch")
@@ -91,6 +93,10 @@ def read_MMA8451():
     line_roll, = axis_roll.plot(t_data, roll_data, label="roll")
     axis_pitch.legend()
     axis_roll.legend()
+    
+    pitch_line, = polar_pitch.plot([0, pi], [2, 2], color="red")
+    roll_save, = polar_roll.plot([0, pi], [2, 2], color="orange", alpha=0.5, linewidth=3)
+    roll_line, = polar_roll.plot([0, pi], [2, 2], color="red")
 
     t_pre = time.time()
     t = 0.0
@@ -144,6 +150,9 @@ def read_MMA8451():
         axis_pitch.autoscale_view()
         axis_roll.relim()
         axis_roll.autoscale_view()
+
+        pitch_line.set_data([pitch, pi+pitch], [2, 2])
+        roll_line.set_data([roll, pi+roll], [2, 2])
 
         plt.pause(0.01)
 
