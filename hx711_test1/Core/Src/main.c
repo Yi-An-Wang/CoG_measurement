@@ -56,8 +56,8 @@ int64_t weight_sum = 0;
 //int32_t average_weight = 0;
 
 int32_t tare = 8399803;
-float know_kg = 2.5;
-float know_hx711 = 939829.25;
+float know_kg = 1;
+float know_hx711 = 1;
 
 int32_t tare_weight_raw = 0;
 float alpha = 0.9;
@@ -179,7 +179,7 @@ int main(void)
 		weight_sum = weight_sum + weight_raw;
 		count_num++;
 	}
-	else if (count_num == 50) {
+	else if (count_num == 500) {
 		tare = weight_sum / count_num;
 		count_num++;
 	}
