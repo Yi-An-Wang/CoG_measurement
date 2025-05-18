@@ -135,10 +135,13 @@ def get_MCU_data():
         plt.pause(0.01)
 
         if reset == 1:
+            print(" ")
             print("Reset tare!!")
             with open("CoG_data.csv", "a+", newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerows(recorded_data)
+            count_num = 0
+            print(f'\r[{"█"*count_num}{" "*(rec_len-count_num)}] {count_num}/{rec_len}', end='')
         if record == 1:
             recorded_data[0].append(est_F1)
             recorded_data[1].append(est_F2)
