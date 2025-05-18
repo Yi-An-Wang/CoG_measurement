@@ -157,6 +157,6 @@ def read_MMA8451():
         plt.pause(0.01)
 
 if __name__ == "__main__":
-    # main()
+    main()
     # read_hx711()
-    read_MMA8451()
+    # read_MMA8451()

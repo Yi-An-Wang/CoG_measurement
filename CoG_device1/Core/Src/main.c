@@ -18,6 +18,7 @@
 
 #include "mma845x.h"
 #include <math.h>
+#include <stdio.h>
 
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -36,6 +37,18 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define DT1  GPIO_PIN_0
+#define DT2  GPIO_PIN_2
+#define DT3  GPIO_PIN_4
+#define DT4  GPIO_PIN_6
+#define DT_Port GPIOC
+
+#define SCK1  GPIO_PIN_1
+#define SCK2  GPIO_PIN_3
+#define SCK3  GPIO_PIN_5
+#define SCK4  GPIO_PIN_7
+#define SCK_Port GPIOC
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,6 +62,51 @@ I2C_HandleTypeDef hi2c1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+
+// ------------------ variables for hx711 --------------------------
+uint32_t raw1;
+uint32_t raw2;
+uint32_t raw3;
+uint32_t raw4;
+
+int count_num = 0;
+
+float tare1 = 8298487.5;
+float tare2 = 8670518;
+float tare3 = 8617560;
+float tare4 = 9115431;
+
+float new_weight1;
+float new_weight2;
+float new_weight3;
+float new_weight4;
+
+float estimated_weight1 = 0.0;
+float estimated_weight2 = 0.0;
+float estimated_weight3 = 0.0;
+float estimated_weight4 = 0.0;
+// ------------------ variables for hx711 end --------------------------
+
+// ------------------ variables for MMA8451 ----------------------------
+//uint8_t who_am_i;
+int16_t ax, ay, az;
+float est_ax = 0, est_ay = 0, est_az = 1000;
+
+float raw_pitch, raw_roll;
+float pitch, roll;
+// ------------------ variables for MMA8451 end ------------------------
+
+// ------------------ variables for button -----------------------------
+uint8_t reset;
+uint8_t record;
+uint8_t break_python;
+// ------------------ variables for button end -------------------------
+
+// ------------------ variables for output -----------------------------
+
+char msg[256];
+
+// ------------------ variables for output end -------------------------
 
 /* USER CODE END PV */
 
@@ -70,7 +128,7 @@ void HX711_delay_us(uint32_t us)
     for (volatile uint32_t i = 0; i < us * 8; i++);
 }
 
-int32_t HX711_Read(void, GPIO_TypeDef* HX711_DT_GPIO_Port, uint16_t HX711_DT_Pin, GPIO_TypeDef* HX711_SCK_GPIO_Port, uint16_t HX711_SCK_Pin)
+int32_t HX711_Read(GPIO_TypeDef* HX711_DT_GPIO_Port, uint16_t HX711_DT_Pin, GPIO_TypeDef* HX711_SCK_GPIO_Port, uint16_t HX711_SCK_Pin)
 {
     int32_t count = 0;
     uint8_t i;
@@ -113,6 +171,42 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
+  int count_valve = 200;
+
+//  float know_kg1 = 2.5;
+//  float know_read1 = 1072407;
+//  float know_kg2 = 2.5;
+//  float know_read2 = 911823.75;
+//  float know_kg3 = 2.5;
+//  float know_read3 = 964234.062;
+//  float know_kg4 = 2.5;
+//  float know_read4 = 1111481.38;
+
+  float know_kg1 = 2.5;
+  float know_read1 = 1125744.38;
+  float know_kg2 = 2.5;
+  float know_read2 = 878821.812;
+  float know_kg3 = 2.5;
+  float know_read3 = 993117.375;
+  float know_kg4 = 2.5;
+  float know_read4 = 1069001.75;
+
+//  float know_kg1 = 1;
+//  float know_read1 = 1;
+//  float know_kg2 = 1;
+//  float know_read2 = 1;
+//  float know_kg3 = 1;
+//  float know_read3 = 1;
+//  float know_kg4 = 1;
+//  float know_read4 = 1;
+
+  float coefficient1 = know_kg1 / know_read1;
+  float coefficient2 = know_kg2 / know_read2;
+  float coefficient3 = know_kg3 / know_read3;
+  float coefficient4 = know_kg4 / know_read4;
+
+  float alpha = 0.9;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -137,6 +231,8 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  MMA845x_Init();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -146,6 +242,74 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	// ------------------- HX711_part ----------------------------
+	raw1 = HX711_Read(DT_Port, DT1, SCK_Port, SCK1);
+	raw2 = HX711_Read(DT_Port, DT2, SCK_Port, SCK2);
+	raw3 = HX711_Read(DT_Port, DT3, SCK_Port, SCK3);
+	raw4 = HX711_Read(DT_Port, DT4, SCK_Port, SCK4);
+
+	if (count_num <= count_valve) {
+		tare1 = tare1 * alpha + raw1 * (1-alpha);
+		tare2 = tare2 * alpha + raw2 * (1-alpha);
+		tare3 = tare3 * alpha + raw3 * (1-alpha);
+		tare4 = tare4 * alpha + raw4 * (1-alpha);
+		count_num++;
+	}
+	else {
+		new_weight1 = (raw1 - tare1) * coefficient1;
+		new_weight2 = (raw2 - tare2) * coefficient2;
+		new_weight3 = (raw3 - tare3) * coefficient3;
+		new_weight4 = (raw4 - tare4) * coefficient4;
+		estimated_weight1 = alpha * estimated_weight1 + (1-alpha) * new_weight1;
+		estimated_weight2 = alpha * estimated_weight2 + (1-alpha) * new_weight2;
+		estimated_weight3 = alpha * estimated_weight3 + (1-alpha) * new_weight3;
+		estimated_weight4 = alpha * estimated_weight4 + (1-alpha) * new_weight4;
+	}
+	// ------------------- HX711_part End ----------------------------
+
+	// ------------------- MMA8451_part ------------------------------
+
+//	HAL_I2C_Mem_Read(&hi2c1, MMA845X_ADDR, 0x0D, 1, &who_am_i, 1, HAL_MAX_DELAY);
+	MMA845x_ReadXYZ(&ax, &ay, &az);
+	est_ax = alpha * est_ax + (1-alpha) * ax;
+	est_ay = alpha * est_ay + (1-alpha) * ay;
+	est_az = alpha * est_az + (1-alpha) * az;
+
+	raw_pitch = atan2(-ax, sqrt(ay*ay + az*az));
+	raw_roll = atan2(ay, az);
+
+	pitch = atan2(-est_ax, sqrt(est_ay*est_ay + est_az*est_az));
+	roll = atan2(est_ay, est_az);
+	// ------------------- MMA8451_part End --------------------------
+
+	// ------------------- button detect -----------------------------
+	reset = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0);
+	record = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_1);
+	break_python = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_2);
+
+	if (reset > 0) {
+		count_num = 0;
+		tare1 = 8298487.5;
+		tare2 = 8670518;
+		tare3 = 8617560;
+		tare4 = 9115431;
+		new_weight1 = 0.0;
+		new_weight2 = 0.0;
+		new_weight3 = 0.0;
+		new_weight4 = 0.0;
+		estimated_weight1 = 0.0;
+		estimated_weight2 = 0.0;
+		estimated_weight3 = 0.0;
+		estimated_weight4 = 0.0;
+		HAL_Delay(1000);
+	}
+
+	int len = sprintf(msg, "%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%d,%d,%d\r\n",
+			new_weight1, new_weight2, new_weight3, new_weight4, estimated_weight1, estimated_weight2, estimated_weight3, estimated_weight4,
+			raw_pitch, raw_roll, pitch, roll, reset, record, break_python);
+	HAL_UART_Transmit(&huart2, (uint8_t*)msg, len, HAL_MAX_DELAY);
+
+	HAL_Delay(200);
   }
   /* USER CODE END 3 */
 }
