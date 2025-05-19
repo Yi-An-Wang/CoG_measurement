@@ -35,8 +35,8 @@ def main():
                 phi_data.extend([float(x) for x in row])
                 row_num = 0
 
-    F_F = np.array(F1_data) + np.array(F4_data)
-    F_R = np.array(F2_data) + np.array(F3_data)
+    F_R = np.array(F1_data) + np.array(F4_data)
+    F_F = np.array(F2_data) + np.array(F3_data)
     Cos_theta = np.cos(np.array(theta_data))
     Sin_theta = np.sin(np.array(theta_data))
     ratio = np.array([(F_F * d * Cos_theta) / (F_R + F_F)]).T
