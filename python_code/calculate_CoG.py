@@ -65,7 +65,7 @@ def main():
     ax2.grid(True)
     ax2.set_xlabel("pitch angle(rad)")
     ax2.set_ylabel("ratio")
-    ax2.scatter(theta_data, ratio[:,0], label="F_r*d*cos(theta)/(F_R+F_L)")
+    ax2.scatter(theta_data, ratio[:,0], label="F_f*d*cos(theta)/(F_R+F_L)")
     ax2.legend()
     plt.show()
 
