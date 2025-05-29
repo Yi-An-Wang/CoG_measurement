@@ -38,13 +38,13 @@
 /* USER CODE BEGIN PD */
 
 #define DT1  GPIO_PIN_0
-#define DT2  GPIO_PIN_2
+#define DT2  GPIO_PIN_8
 #define DT3  GPIO_PIN_4
 #define DT4  GPIO_PIN_6
 #define DT_Port GPIOC
 
 #define SCK1  GPIO_PIN_1
-#define SCK2  GPIO_PIN_3
+#define SCK2  GPIO_PIN_9
 #define SCK3  GPIO_PIN_5
 #define SCK4  GPIO_PIN_7
 #define SCK_Port GPIOC
@@ -182,14 +182,23 @@ int main(void)
 //  float know_kg4 = 2.5;
 //  float know_read4 = 1111481.38;
 
+//  float know_kg1 = 2.5;
+//  float know_read1 = 1125744.38;
+//  float know_kg2 = 2.5;
+//  float know_read2 = 878821.812;
+//  float know_kg3 = 2.5;
+//  float know_read3 = 993117.375;
+//  float know_kg4 = 2.5;
+//  float know_read4 = 1069001.75;
+
   float know_kg1 = 2.5;
-  float know_read1 = 1125744.38;
+  float know_read1 = 1097754.12;
   float know_kg2 = 2.5;
-  float know_read2 = 878821.812;
+  float know_read2 = 950070.812;
   float know_kg3 = 2.5;
-  float know_read3 = 993117.375;
+  float know_read3 = 945036.062;
   float know_kg4 = 2.5;
-  float know_read4 = 1069001.75;
+  float know_read4 = 1056474.5;
 
 //  float know_kg1 = 1;
 //  float know_read1 = 1;
@@ -440,16 +449,21 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_7, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_7
+                          |GPIO_PIN_9, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PC0 PC2 PC4 PC6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_2|GPIO_PIN_4|GPIO_PIN_6;
+  /*Configure GPIO pins : PC0 PC2 PC4 PC6
+                           PC8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_2|GPIO_PIN_4|GPIO_PIN_6
+                          |GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PC1 PC3 PC5 PC7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_7;
+  /*Configure GPIO pins : PC1 PC3 PC5 PC7
+                           PC9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_7
+                          |GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
