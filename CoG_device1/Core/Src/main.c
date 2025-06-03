@@ -192,13 +192,13 @@ int main(void)
 //  float know_read4 = 1069001.75;
 
   float know_kg1 = 2.5;
-  float know_read1 = 1097754.12;
+  float know_read1 = 1092418.75;
   float know_kg2 = 2.5;
-  float know_read2 = 950070.812;
+  float know_read2 = 1036434.56;
   float know_kg3 = 2.5;
-  float know_read3 = 945036.062;
+  float know_read3 = 982481.312;
   float know_kg4 = 2.5;
-  float know_read4 = 1056474.5;
+  float know_read4 = 931829.5;
 
 //  float know_kg1 = 1;
 //  float know_read1 = 1;
